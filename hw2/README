@@ -1,0 +1,75 @@
+Design for sgfs:
+
+	This stackable file system handles the deletion of the objects with encryption key and without
+encryption key. All the errors have been appropriately handled to my knowledge. When ever the user wants
+to delete a file then he removes it. For the first time it goes into the .sg folder which is created at 
+mount time. For those with the encrypted data they are named with .enc extention. When the user goes into
+the .sg folder to delete something then the user can see only those files which he/she have deleted. The root
+user can see all the files in the .sg folder. When the user goes ahead and deletes the file from the .sg
+folder then the data is permanently lost. If the user wants to recover the data then the user level code has
+has to be executed to recover the data and the recovered data would have the same name as the original file
+and would be restored to the current working directory from where the code has been called.
+
+ioctl :
+	
+	The encrypted key had been added to the private field of the super block and then it has been used 
+in the other functions as well. If the key is null then the data is restored normally and if the key is not null
+then it will be decrypted and restored. The original filename has been extracted from the filename itself as
+it contains the original filename as well. A custom ls function has been written so that only the users who have
+permission to view the files in .sg folder can view them. This has been handled as, the filename containes the uid
+of the user who deleted the file. This uid is then compared with the uid of the user who is trying to delete 
+the file. If the uid's match then only the user can see the files or else he/she cannot see the files.
+
+mount :
+
+	For the mount point, it has been checked if the mount is being done with key or without key. If the 
+key is passed as a parameter then it is received as a raw_data and then it is parsed to extract the key from it and 
+then this key obtained is stored in the private node so that it can be used while encryption and decryption.
+
+user-level code:
+
+	In the user level code, I have taken the file to be restored using the u flag and if the u flag is absent it throws an err
+Then the corresponding file descrptor of the file is opened and it is passed to the ioctl for further processing. If it is successfull, then
+it returns -1, indicating that the restore has happened.
+
+Note: Everywhere the appropriate user permissions and error checks have been done.
+
+Instructions to run the code :
+
+	navigate to the hw2-user directory
+	run make
+	run make modules
+	run make modules_install install
+	run lsmod
+	if sgfs is alread loaded and mounted do
+		umount /mnt/sgfs
+		rmmod sgfs
+	run insmod ./fs/sgfs/sgfs.ko
+	run mount -t sgfs ./hw2/sgfs/ /mnt/sgfs/  --------  if without key
+	run mount -t sgfs -o key=123456 ./hw2/sgfs/ /mnt/sgfs/ ---- if with key
+
+	if you want to restore:
+		navigate to hw2-vanugu/hw2/
+		make
+		./sgctl -u /mnt/sgfs/.sg/file_name
+		
+		Note: If the above doesn't work then try
+			navigate to the hw2-vanugu/fs/sgfs
+			gcc sgctl.c -o sgctl.o
+			./sgctl.o -u /mnt/sgfs/.sg/file_name
+	
+
+References :
+Note: Below are the references of all the source from where direct code snippets have been taken and 
+modified to the required if necessary.
+
+1) https://elixir.bootlin.com/linux/v4.0/source/drivers/base/devtmpfs.c
+
+2) https://elixir.bootlin.com/linux/v3.8/source/fs/ecryptfs/file.c
+
+3) https://github.com/richygerard/file-encryption-decryption/blob/master/sys_xcrypt.c
+
+4) https://github.com/atomic-penguin/linux/blob/master/net/ceph/crypto.c
+
+5) https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/#IOCTL_Tutorial_in_Linux
+
